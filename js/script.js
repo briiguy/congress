@@ -1,119 +1,67 @@
-console.log('hello world')
+// https://congress.api.sunlightfoundation.com/legislators?apikey=721e2620a76a4a4d93562fa154f88811
+var searchNode = document.querySelector('#searchBox')
+var promise = $.getJSON('https://congress.api.sunlightfoundation.com/legislators?apikey=721e2620a76a4a4d93562fa154f88811')
 
-// METADATA URL EXAMPLE
-// http://openstates.org/api/v1/metadata/tx/?apikey=0e85724a8f924c6aba8bd576df364eb7
+var containerNode = document.querySelector('#container')
 
-// LEGISLATOR URL EXAMPLE
-// http://openstates.org/api/v1/legislators/?state=tx&apikey=0e85724a8f924c6aba8bd576df364eb7
-
-// define some global variables
-var legislatorsUrlRoot = "http://openstates.org/api/v1/legislators/",
-	stateUrlRoot = "http://openstates.org/api/v1/metadata/",
-	apiKey = "0e85724a8f924c6aba8bd576df364eb7",
-	legislatorParams = {
-		apikey: apiKey,
-	},
-	stateParams = {
-		apikey: apiKey
-	},
-	containerNode = document.querySelector('#container')
-var stateQuery = function(stateInput){
-	stateUrlRoot += stateInput + '/'
-	legislatorParams.state = stateInput
-}
-stateQuery(inputValue)
-
-var genParamString = function(paramObject) {
-    var outputString = '?'
-    for (var key in paramObject) {
-     	outputString += key + '=' + paramObject[key] + '&'
+var zip = function(zipcode){
+    if(zipcode.keyCode === 13){
+        var zipBox = zipcode.target
+        var zipCode = zipBox.value
+        console.log(zipCode)
+        var URL = $.getJSON('https://congress.api.sunlightfoundation.com//legislators/locate?apikey=a9648334a77f4a0e88bed1815fb9e028&per_page=10&zip=' + zipCode)
+        containerNode.innerHTML = ''
+        URL.then(handleData)
+        
     }
-    return outputString.substr(0,outputString.length - 1)
+    
 }
 
-// build the urls we need
-var legislatorsUrlFull = legislatorsUrlRoot + genParamString(legislatorParams)
-var stateUrlFull = stateUrlRoot + genParamString(stateParams)
+function handleData (data){
 
-// request data from each url, store the promises that are returned
-var legislatorPromise = $.getJSON(legislatorsUrlFull)
-var statePromise = $.getJSON(stateUrlFull)
+console.log(data)
+for (var i = 0; i < data.results.length; i++){
+    var divNode = document.createElement('div')
+    divNode.style.width = '33.33%'
+    divNode.style.border = '8px solid white'
+    divNode.style.padding = '8px'
+
+    var h1Node = document.createElement('h1')
+    h1Node.textContent = data.results[i].first_name + ' ' + data.results[i].last_name
+
+    var bNode = document.createElement('b')
+    bNode.textContent = data.results[i].title + ' -- ' + data.results[i].party + '-' + data.results[i].state_name
+
+    var emailNode = document.createElement('li')
+    emailNode.textContent = "email: " + data.results[i].oc_email
+
+    var websiteNode = document.createElement('li')
+    websiteNode.textContent = "website: " + data.results[i].website
+        
+    var facebookNode = document.createElement('li')
+    facebookNode.textContent = "facebook: " + data.results[i].facebook_id
+
+    var twitterNode = document.createElement('li')
+    twitterNode.textContent = "twitter: " + data.results[i].twitter_id
+
+    var h3Node = document.createElement('h3')
+    h3Node.textContent = "Term End: " + data.results[i].term_end
 
 
-// define functions that will handle the data when it's ready. note that
-// each of these functions takes a response object as input. that's because
-// when the promise object invokes them, it will pass as input the response 
-// to our request.
-var stateDataHandler = function(responseObject) {
-	console.log('eyyyy we got some state data!!!')
-	console.log(responseObject)
 
-	// build an html string
-	var htmlString = ''
-	var stateName = responseObject.name,
-		legislatureName = responseObject.legislature_name,
-		legislatureUrl = responseObject.legislature_url
-
-	htmlString += '<p class="stateName">state: ' + stateName + '</p>'
-	htmlString += '<p class="legName">name: ' + legislatureName + '</p>'
-	htmlString += '<a href="' + legislatureUrl + '">website</a>'
-
-	// write it into the container
-	var leftContainer = document.querySelector("#leftCol")
-	leftContainer.innerHTML = htmlString
+    divNode.appendChild(h1Node)
+    divNode.appendChild(bNode)
+    divNode.appendChild(emailNode)
+    divNode.appendChild(websiteNode)
+    divNode.appendChild(facebookNode)
+    divNode.appendChild(twitterNode)
+    divNode.appendChild(h3Node)
+    containerNode.appendChild(divNode)
+     
+}
 }
 
-var legislatorDataHandler = function(legislatorsArray) {
-	console.log('yooo we got some legislator data, i guess')
-	// "full_name": "Dan Patrick",
-	// "+district_address": " 11451 Katy Fwy, Suite 209\nHouston, TX 77079\n(713) 464-0282",
-	// "photo_url": "http://www.legdir.legis.state.tx.us/FlashCardDocs/images/Senate/small/A1430.jpg",
-
-	var htmlCards = ''
-	for (var i = 0; i < 10; i ++) {
-		var legObject = legislatorsArray[i],
-			name = legObject.full_name,
-			addy = legObject['+district_address'],
-			imgSrc = legObject.photo_url
-		if (addy === undefined) {
-			addy = "not listed"
-		}
-		htmlCards += '<div class="legCard">'
-		htmlCards += '<div class="portrait">'
-		htmlCards += 	'<img src="' + imgSrc + '">'
-		htmlCards += '</div>'
-		htmlCards += '<div class="legData">'
-		htmlCards += 	'<h2 class="name">name: ' + name + '</h2>'
-		htmlCards += 	'<p class="address">address: ' + addy + '</p>'
-		htmlCards += '</div>'
-		htmlCards += '</div>'
-	}
-	var rightContainer = document.querySelector('#rightCol')
-	rightContainer.innerHTML += htmlCards
-}
-
-// hand our functions over to the promise objects, so they 
-// can be invoked when the data is ready.
-
-var searchBar = document.querySelector('input')
-var searchFunction = function(eventObj){
-	// If enter key is pressed
-	if(eventObj.keyCode === 13){
-		var stateQuery = function(stateInput){
-	stateUrlRoot += stateInput + '/'
-	legislatorParams.state = stateInput
-}
-		// Extract value that user typed
-		var inputElement = eventObj.target
-		var inputValue = inputElement.value
-		// Make a custom query with the input value
-		statePromise.then(stateDataHandler)
-legislatorPromise.then(legislatorDataHandler)
-		stateQuery(inputValue)
-	}
-}
-
-searchBar.addEventListener('keydown',searchFunction)
 
 
-
+promise.then(handleData)
+searchNode.addEventListener('keydown', zip)
